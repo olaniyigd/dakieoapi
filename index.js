@@ -305,8 +305,8 @@ app.post('/change-password', authenticateToken, async (req, res) => {
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'pharuqgbadegesin5@gmail.com',
-        pass: 'lbku wopz kvmb vtdz'
+        user: 'dakieopay@gmail.com',
+        pass: 'fhkj neqf pfyz cdxd'
     }
 });
 
@@ -328,14 +328,35 @@ app.post('/request-password-reset', async (req, res) => {
         const hashedResetToken = await bcrypt.hash(resetToken, 1);
 
         user.resetPasswordToken = hashedResetToken;
-        user.resetPasswordExpires = Date.now() + 3600000;
+        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour expiration
         await user.save();
 
+        const expirationTime = new Date(user.resetPasswordExpires).toLocaleTimeString();
+        const companyName = "DakieoPay";
+        const companyLogoUrl = `${req.protocol}://${req.get('host')}/public/logo.png`;
+
+        // Dynamically include the user's name in the email
+        const userName = user.username || "User";
+
         const mailOptions = {
-            from: 'pharuqgbadegesin5@gmail.com',
+            from: 'dakieo@gmail.com',
             to: email,
-            subject: 'Password Reset',
-            text: `Here is your password reset token: ${resetToken}`
+            subject: `${companyName} Password Reset`,
+            html: `
+                <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: auto;">
+                    <div style="text-align: center;">
+                        <img src="${companyLogoUrl}" alt="${companyName} Logo" style="width: 150px; margin-bottom: 20px;" />
+                    </div>
+                    <h2 style="color: #333;">Password Reset Request</h2>
+                    <p>Dear <strong>${userName}</strong>,</p>
+                    <p>You requested to reset your password for your account at <strong>${companyName}</strong>.</p>
+                    <p>Your One-Time Password (OTP) is: <strong style="font-size: 1.2em; color: #007BFF;">${resetToken}</strong></p>
+                    <p>This OTP is valid until <strong>${expirationTime}</strong> (1 hour from now).</p>
+                    <p>If you did not request a password reset, please ignore this email.</p>
+                    <p>Best regards,</p>
+                    <p>The ${companyName} Team</p>
+                </div>
+            `
         };
 
         transporter.sendMail(mailOptions, (error, info) => {
@@ -344,12 +365,18 @@ app.post('/request-password-reset', async (req, res) => {
                 return res.status(500).json({ message: 'Error sending email', error: error.message, statusCode: "500" });
             }
             console.log('Email sent:', info.response);
-            res.status(200).json({ message: 'Password reset token generated and sent via email', statusCode: "200" });
-        });
+            res.status(200).json({ 
+                message: 'Password reset token generated and sent via email', 
+                statusCode: "200", 
+                expiresAt: expirationTime 
+            });
+        });  
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message, statusCode: "500" });
     }
 });
+
+
 
 // Reset password
 app.post('/reset-password', async (req, res) => {
